@@ -1,0 +1,48 @@
+---
+- name: Docker と Docker Compose のインストール
+  hosts: all
+  become: yes
+  tasks:
+    - name: Dockerの必要パッケージをインストール
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: latest
+        update_cache: yes
+
+    - name: DockerのGPGキーを追加
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Dockerのリポジトリを追加
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable
+        state: present
+
+    - name: Docker CEをインストール
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: yes
+
+    - name: 現在のユーザーをdockerグループに追加
+      user:
+        name: "{{ ansible_env.SUDO_USER }}"
+        groups: docker
+        append: yes
+
+    - name: Docker Composeのインストール
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-{{ ansible_system }}-{{ ansible_userspace_architecture }}
+        dest: /usr/local/bin/docker-compose
+        mode: "u+x,g+x"
+
+    - name: Dockerサービスの起動と有効化
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
